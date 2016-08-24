@@ -27,7 +27,7 @@ namespace ReflectionTriangulationTests.Portable
             Abstraction instance = new ConcreteType();
 
             var stringComparisonDuration = MeasureStringComparisonPerformance(instance);
-            var downcastDuration = MeasureDowncastPerformance(instance);
+            var downcastDuration = MeasureIsOperatorPerformance(instance);
 
             _output.WriteLine($"Downcast duration:          {downcastDuration.TotalMilliseconds:N}ms");
             _output.WriteLine($"String comparison duration: {stringComparisonDuration.TotalMilliseconds:N}ms");
@@ -48,7 +48,7 @@ namespace ReflectionTriangulationTests.Portable
             return stopwatch.Elapsed;
         }
 
-        private static TimeSpan MeasureDowncastPerformance(Abstraction instance)
+        private static TimeSpan MeasureIsOperatorPerformance(Abstraction instance)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -67,11 +67,11 @@ namespace ReflectionTriangulationTests.Portable
         {
             Abstraction instance = new ConcreteType();
 
-            var downcastDuration = MeasureDowncastPerformance(instance);
+            var downcastDuration = MeasureIsOperatorPerformance(instance);
             var typeofDuration = MeasureTypeofPerformance(instance);
 
-            _output.WriteLine($"Downcast duration:          {downcastDuration.TotalMilliseconds:N}ms");
-            _output.WriteLine($"typeof duration: {typeofDuration.TotalMilliseconds:N}ms");
+            _output.WriteLine($"Downcast duration: {downcastDuration.TotalMilliseconds:N}ms");
+            _output.WriteLine($"typeof duration:   {typeofDuration.TotalMilliseconds:N}ms");
             typeofDuration.Should().BeGreaterThan(downcastDuration);
         }
 
@@ -83,6 +83,40 @@ namespace ReflectionTriangulationTests.Portable
             {
                 // ReSharper disable once UnusedVariable
                 var foo = instance.GetType() == typeof(ConcreteType);
+            }
+            stopwatch.Stop();
+
+            return stopwatch.Elapsed;
+        }
+
+        [Fact(DisplayName = "Is operator is basically as fast as as operator with additional null check.")]
+        public void IsOperatorVsAsOperatorComparison()
+        {
+            Abstraction instance = new ConcreteType();
+
+            var asDuration = MeasureAsOperatorPerformance(instance);
+            var isDuration = MeasureIsOperatorPerformance(instance);
+
+            _output.WriteLine($"Is duration: {isDuration.TotalMilliseconds:N}ms");
+            _output.WriteLine($"As duration: {asDuration.TotalMilliseconds:N}ms");
+
+            var greaterValue = Math.Max(asDuration.TotalMilliseconds, isDuration.TotalMilliseconds);
+            var smallerValue = Math.Min(asDuration.TotalMilliseconds, isDuration.TotalMilliseconds);
+            var differenceInPerCent = 1.0 - smallerValue / greaterValue;
+            _output.WriteLine($"Difference: {differenceInPerCent:P}");
+
+            differenceInPerCent.Should().BeLessThan(0.1);
+        }
+
+        private static TimeSpan MeasureAsOperatorPerformance(Abstraction instance)
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            for (long i = 0; i < 100000000; ++i)
+            {
+                // ReSharper disable once UnusedVariable
+                // ReSharper disable once TryCastAndCheckForNull.1
+                var foo = instance as ConcreteType != null;
             }
             stopwatch.Stop();
 
